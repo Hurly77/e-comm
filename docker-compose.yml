@@ -1,23 +1,12 @@
 version: '3.8'
-services:
-  app:
-    container_name: nestjs_app
-    build: .
-    ports:
-      - '3000:3000'
-    environment:
-      - DATABASE_URL=postgres://cameron:pass123@db:5432/ecommerce-db
-    depends_on:
-      - db
 
+services:
   db:
     container_name: postgres_db
     image: postgres:12
     ports:
-      - '5432:5432'
+      - '5433:5432' # Map host port 5433 to container port 5432
     environment:
-      - POSTGRES_HOST=127/0.0.1
-      - POSTGRES_PORT=5432
       - POSTGRES_USER=cameron
       - POSTGRES_PASSWORD=pass123
       - POSTGRES_DB=ecommerce-db

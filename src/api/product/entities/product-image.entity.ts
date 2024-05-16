@@ -10,11 +10,11 @@ import { Product } from './product.entity';
 
 @Entity()
 export class ProductImage {
+  constructor(partial: Partial<ProductImage>) {
+    Object.assign(this, partial);
+  }
   @PrimaryGeneratedColumn()
   id: number;
-
-  @Column()
-  product_id: number;
 
   @Column()
   url: string;

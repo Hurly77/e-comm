@@ -39,10 +39,11 @@ export class Product {
 
   @OneToMany(() => ProductImage, (productImage) => productImage.product, {
     cascade: true,
+    onDelete: 'CASCADE',
   })
   images: ProductImage[];
 
-  @OneToOne(() => ProductImage) // Assuming each product has one thumbnail
+  @OneToOne(() => ProductImage, { cascade: true, onDelete: 'CASCADE' }) // Assuming each product has one thumbnail
   @JoinColumn()
   thumbnail: ProductImage;
 }

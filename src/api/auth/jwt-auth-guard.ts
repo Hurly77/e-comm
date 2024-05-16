@@ -41,7 +41,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   async validate(payload: any) {
     // Here you can add more validation logic if needed
-    console.log('payload', payload);
 
     return {
       userId: payload.sub,

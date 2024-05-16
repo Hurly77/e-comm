@@ -54,10 +54,10 @@ export class S3Service {
   }
 
   // Delete file from S3
-  public async deleteFileFromS3(options: { path: string; bucket: string }) {
+  public async deleteFileFromS3(options: { key: string; bucket: string }) {
     const command = new DeleteObjectCommand({
       Bucket: options.bucket,
-      Key: options.path,
+      Key: options.key,
     });
 
     try {

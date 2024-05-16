@@ -21,6 +21,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @Public()
   registerCustomer(@Body() createCustomerDto: CreateCustomerDto) {
     return this.authService.registerCustomer(createCustomerDto);
   }
@@ -32,6 +33,7 @@ export class AuthController {
   }
 
   @Post('admin/register')
+  @Public()
   registerAdmin(@Body() createAdminDto: CreateAdminDto) {
     return this.authService.registerAdmin(createAdminDto);
   }

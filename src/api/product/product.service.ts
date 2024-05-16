@@ -20,12 +20,9 @@ export class ProductService {
     createProductDto: CreateProductDto,
     files?: Array<Express.Multer.File>,
   ) {
-    console.log('Create Product Dto: ', createProductDto);
     const existingProduct = await this.productRepo.findOne({
       where: { SKU: createProductDto.SKU },
     });
-
-    console.log('Existing Product: ', existingProduct);
 
     if (existingProduct) {
       throw new HttpException(
@@ -37,25 +34,30 @@ export class ProductService {
 
     try {
       const productImages = await Promise.all(
-        files.map(async (file) => {
+        files.map(async (file, idx) => {
           const res = await this.s3Service.uploadFileToS3(file, {
             path: `product/${product.id}/${file.originalname}`,
             bucket: process.env.AWS_S3_BUCKET_NAME,
           });
           if ('Location' in res) {
-            return this.productImageRepo.save({
+            return new ProductImage({
               s3_location: res.Location,
               s3_key: res.Key,
-              product_id: product.id,
+              product: product,
               url: res.Location,
+              isThumbnail: idx === 0,
             });
+          } else {
+            return undefined;
           }
         }),
       );
 
-      product.thumbnail = productImages[0];
-      console.log('Images: ', productImages);
-      await this.productRepo.save(product);
+      const savedImages = productImages.filter((image) => image !== undefined);
+      const thumbnail = savedImages[0];
+      await this.productImageRepo.save(savedImages);
+      console.log(thumbnail, files.length);
+      await this.productRepo.update(product.id, { thumbnail });
     } catch (error) {
       console.log(error);
     }
@@ -84,17 +86,71 @@ export class ProductService {
     );
   }
 
-  findOne(id: number) {
-    return this.productRepo.findOne({
+  async findOne(id: number) {
+    const product = await this.productRepo.findOne({
       where: { id },
+      relations: ['thumbnail', 'images'],
     });
+
+    console.log(product.images);
+
+    const productImages = await Promise.all(
+      product.images.map(async (image) => {
+        const signedUrl = await this.s3Service.getSignedUrl({
+          key: image.s3_key,
+          bucket: process.env.AWS_S3_BUCKET_NAME,
+        });
+        return {
+          ...image,
+          signedUrl,
+        };
+      }),
+    );
+
+    return {
+      ...product,
+      images: productImages,
+    };
+
+    // return { product, s3_keys: product.images.map((image) => image.s3_key) };
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
+  async update(
+    id: number,
+    updateProductDto: UpdateProductDto,
+    files?: Express.Multer.File[],
+  ) {
+    const product = this.productRepo.findOne({
+      where: { id },
+      relations: ['thumbnail', 'images'],
+    });
+
     return this.productRepo.update(id, updateProductDto);
   }
 
-  remove(id: number) {
-    return this.productRepo.delete(id);
+  async remove(id: number) {
+    const product = await this.productRepo.findOne({
+      where: { id },
+      relations: ['thumbnail', 'images'],
+    });
+
+    if (product.thumbnail) {
+      await this.s3Service.deleteFileFromS3({
+        key: product.thumbnail.s3_key,
+        bucket: process.env.AWS_S3_BUCKET_NAME,
+      });
+    }
+
+    await Promise.all(
+      product.images.map(async (image) => {
+        await this.s3Service.deleteFileFromS3({
+          key: image.s3_key,
+          bucket: process.env.AWS_S3_BUCKET_NAME,
+        });
+      }),
+    );
+
+    await this.productImageRepo.remove(product.images);
+    return this.productRepo.remove(product);
   }
 }
