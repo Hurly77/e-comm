@@ -4,6 +4,8 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { ConfigService } from '@nestjs/config';
@@ -18,18 +20,13 @@ export class S3Service {
       region: this.configService.get<string>('AWS_S3_REGION'),
       credentials: {
         accessKeyId: this.configService.get<string>('AWS_S3_ACCESS_KEY_ID'),
-        secretAccessKey: this.configService.get<string>(
-          'AWS_S3_SECRET_ACCESS_KEY',
-        ),
+        secretAccessKey: this.configService.get<string>('AWS_S3_SECRET_ACCESS_KEY'),
       },
     });
   }
 
   // Upload file to S3
-  public async uploadFileToS3(
-    file: Express.Multer.File,
-    options: { path: string; bucket: string },
-  ) {
+  public async uploadFileToS3(file: Express.Multer.File, options: { path: string; bucket: string }) {
     const command = new PutObjectCommand({
       Bucket: options.bucket,
       Key: options.path,
@@ -94,6 +91,60 @@ export class S3Service {
     });
 
     return await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
+  }
+
+  async listObjects(bucket: string): Promise<string[]> {
+    const objects: string[] = [];
+    let continuationToken: string | undefined;
+
+    do {
+      const command = new ListObjectsV2Command({
+        Bucket: bucket,
+        ContinuationToken: continuationToken,
+      });
+
+      const response = await this.s3Client.send(command);
+      if (response.Contents) {
+        response.Contents.forEach((item) => {
+          if (item.Key) {
+            objects.push(item.Key);
+          }
+        });
+      }
+
+      continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
+
+    return objects;
+  }
+
+  async deleteObjects(bucket: string, keys: string[]): Promise<void> {
+    const chunks = [];
+    const chunkSize = 1000;
+
+    for (let i = 0; i < keys.length; i += chunkSize) {
+      chunks.push(keys.slice(i, i + chunkSize));
+    }
+
+    await Promise.all(
+      chunks.map(async (chunk) => {
+        const command = new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: {
+            Objects: chunk.map((key) => ({ Key: key })),
+          },
+        });
+
+        await this.s3Client.send(command);
+      }),
+    );
+  }
+
+  async emptyBucket(bucket: string): Promise<void> {
+    const keys = await this.listObjects(bucket);
+    if (keys.length > 0) {
+      await this.deleteObjects(bucket, keys);
+    }
   }
 
   // In AWS SDK for JavaScript v3, error handling is done through try/catch blocks

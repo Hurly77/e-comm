@@ -13,6 +13,11 @@ import { JwtAuthGuard } from './api/auth/jwt-auth-guard';
 import { APP_GUARD } from '@nestjs/core';
 import { Admin } from './api/admin/entities/admin.entity';
 import { ProductImage } from './api/product/entities/product-image.entity';
+import { SeedModule } from './core/seed/seed.module';
+import { SeedService } from './core/seed/seed.service';
+import { DatabaseModule } from './core/database/database.module';
+import { CategoryModule } from './api/category/category.module';
+import { Category } from './api/category/entities/category.entity';
 
 @Module({
   imports: [
@@ -30,7 +35,7 @@ import { ProductImage } from './api/product/entities/product-image.entity';
         username: configService.get('POSTGRES_USER'),
         password: configService.get('POSTGRES_PASSWORD'),
         database: configService.get('POSTGRES_DB'),
-        entities: [Product, ProductImage, Customer, Admin],
+        entities: [Product, ProductImage, Customer, Admin, Category],
         synchronize: true,
       }),
     }),
@@ -38,6 +43,9 @@ import { ProductImage } from './api/product/entities/product-image.entity';
     CustomerModule,
     AuthModule,
     AdminModule,
+    SeedModule,
+    DatabaseModule,
+    CategoryModule,
   ],
   controllers: [AppController],
   providers: [

@@ -7,11 +7,9 @@ import { S3Module } from 'src/core/s3/s3.module';
 import { ProductImage } from './entities/product-image.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Product, ProductImage], 'ecommerce-db'),
-    S3Module,
-  ],
+  imports: [TypeOrmModule.forFeature([Product, ProductImage], 'ecommerce-db'), S3Module],
   controllers: [ProductController],
   providers: [ProductService],
+  exports: [ProductService],
 })
 export class ProductModule {}

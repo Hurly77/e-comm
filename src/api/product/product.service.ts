@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { S3Service } from 'src/core/s3/s3.service';
 import { ProductImage } from './entities/product-image.entity';
+import { Category } from '../category/entities/category.entity';
 
 @Injectable()
 export class ProductService {
@@ -16,21 +17,15 @@ export class ProductService {
     private productImageRepo: Repository<ProductImage>,
     private s3Service: S3Service,
   ) {}
-  async create(
-    createProductDto: CreateProductDto,
-    files?: Array<Express.Multer.File>,
-  ) {
+  async create(createProductDto: CreateProductDto, category: Category | null, files?: Array<Express.Multer.File>) {
     const existingProduct = await this.productRepo.findOne({
       where: { SKU: createProductDto.SKU },
     });
 
     if (existingProduct) {
-      throw new HttpException(
-        `Product with SKU:${existingProduct.SKU} already exists`,
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new HttpException(`Product with SKU:${existingProduct.SKU} already exists`, HttpStatus.BAD_REQUEST);
     }
-    const product = await this.productRepo.save(createProductDto);
+    const product = await this.productRepo.save({ ...createProductDto, category });
 
     try {
       const productImages = await Promise.all(
@@ -56,7 +51,7 @@ export class ProductService {
       const savedImages = productImages.filter((image) => image !== undefined);
       const thumbnail = savedImages[0];
       await this.productImageRepo.save(savedImages);
-      console.log(thumbnail, files.length);
+
       await this.productRepo.update(product.id, { thumbnail });
     } catch (error) {
       console.log(error);
@@ -67,7 +62,7 @@ export class ProductService {
 
   async findAll() {
     const products = await this.productRepo.find({
-      relations: ['thumbnail'],
+      relations: ['thumbnail', 'category'],
     });
 
     return await Promise.all(
@@ -92,34 +87,23 @@ export class ProductService {
       relations: ['thumbnail', 'images'],
     });
 
-    console.log(product.images);
-
     const productImages = await Promise.all(
       product.images.map(async (image) => {
         const signedUrl = await this.s3Service.getSignedUrl({
           key: image.s3_key,
           bucket: process.env.AWS_S3_BUCKET_NAME,
         });
-        return {
-          ...image,
-          signedUrl,
-        };
+
+        return { ...image, signedUrl };
       }),
     );
 
-    return {
-      ...product,
-      images: productImages,
-    };
+    return { ...product, images: productImages };
 
     // return { product, s3_keys: product.images.map((image) => image.s3_key) };
   }
 
-  async update(
-    id: number,
-    updateProductDto: UpdateProductDto,
-    files?: Express.Multer.File[],
-  ) {
+  async update(id: number, updateProductDto: UpdateProductDto, files?: Express.Multer.File[]) {
     const product = this.productRepo.findOne({
       where: { id },
       relations: ['thumbnail', 'images'],
@@ -129,24 +113,15 @@ export class ProductService {
   }
 
   async remove(id: number) {
-    const product = await this.productRepo.findOne({
-      where: { id },
-      relations: ['thumbnail', 'images'],
-    });
+    const product = await this.productRepo.findOne({ where: { id }, relations: ['thumbnail', 'images'] });
 
     if (product.thumbnail) {
-      await this.s3Service.deleteFileFromS3({
-        key: product.thumbnail.s3_key,
-        bucket: process.env.AWS_S3_BUCKET_NAME,
-      });
+      await this.s3Service.deleteFileFromS3({ key: product.thumbnail.s3_key, bucket: process.env.AWS_S3_BUCKET_NAME });
     }
 
     await Promise.all(
       product.images.map(async (image) => {
-        await this.s3Service.deleteFileFromS3({
-          key: image.s3_key,
-          bucket: process.env.AWS_S3_BUCKET_NAME,
-        });
+        await this.s3Service.deleteFileFromS3({ key: image.s3_key, bucket: process.env.AWS_S3_BUCKET_NAME });
       }),
     );
 

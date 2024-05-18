@@ -4,11 +4,13 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ProductImage } from './product-image.entity';
+import { Category } from 'src/api/category/entities/category.entity';
 
 @Entity()
 export class Product {
@@ -46,4 +48,7 @@ export class Product {
   @OneToOne(() => ProductImage, { cascade: true, onDelete: 'CASCADE' }) // Assuming each product has one thumbnail
   @JoinColumn()
   thumbnail: ProductImage;
+
+  @ManyToOne(() => Category, (category) => category.products)
+  category: Category | null;
 }

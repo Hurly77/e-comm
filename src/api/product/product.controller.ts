@@ -28,12 +28,9 @@ export class ProductController {
   @Roles(AuthRole.ADMIN)
   @UseGuards(RolesGuard)
   @UseInterceptors(FilesInterceptor('images'))
-  create(
-    @UploadedFiles() files: Array<Express.Multer.File>,
-    @Body() createProductDto: CreateProductDto,
-  ) {
+  create(@UploadedFiles() files: Array<Express.Multer.File>, @Body() createProductDto: CreateProductDto) {
     console.log(files, createProductDto);
-    return this.productService.create(createProductDto, files);
+    return this.productService.create(createProductDto, null, files);
   }
 
   @Get()

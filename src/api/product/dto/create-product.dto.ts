@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsNumber, IsString, Length } from 'class-validator';
 import { Product } from '../entities/product.entity';
 
-export class CreateProductDto extends Product {
+export class CreateProductDto {
   @IsNotEmpty()
   @IsString()
   title: string;
