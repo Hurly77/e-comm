@@ -105,10 +105,22 @@ export class CategoryService {
 
   async findCategory(category: Category) {
     const categoryParents = await this.categoryRepo.findAncestorsTree(category, {
-      relations: ['parent'],
+      relations: ['parent', 'products'],
     });
 
-    return categoryParents;
+    const signedProducts = await Promise.all(
+      category.products.map(async (product) => ({
+        ...product,
+        thumbnailUrl: product.thumbnail
+          ? await this.s3Service.getSignedUrl({
+              key: product.thumbnail.s3_key,
+              bucket: process.env.AWS_S3_BUCKET_NAME,
+            })
+          : null,
+      })),
+    );
+
+    return { ...categoryParents, products: signedProducts };
   }
 
   findAllByIds(ids: number[]) {

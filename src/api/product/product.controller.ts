@@ -32,14 +32,12 @@ export class ProductController {
   @UseGuards(RolesGuard)
   @UseInterceptors(FilesInterceptor('images'))
   create(@UploadedFiles() files: Array<Express.Multer.File>, @Body() createProductDto: CreateProductDto) {
-    console.log(files, createProductDto);
     return this.productService.create(createProductDto, null, files);
   }
 
   @Get()
   @Public()
   findAll(@Query(new ValidationPipe({ transform: true })) filters: CheckFilters) {
-    console.log(filters);
     return this.productService.findAll(filters);
   }
 

@@ -70,7 +70,6 @@ export class ProductService {
       skip: filters?.skip,
       where: filters?.deals ? { regularPrice: MoreThan(0) } : undefined,
     });
-    console.log(filters);
 
     return await Promise.all(
       products.map(async (product) => {
@@ -91,7 +90,7 @@ export class ProductService {
   async findOne(id: number) {
     const product = await this.productRepo.findOne({
       where: { id },
-      relations: ['thumbnail', 'images', 'category'],
+      relations: ['thumbnail', 'images', 'category', 'category.products', 'category.products.thumbnail'],
     });
 
     const category = await this.categoryService.findCategory(product.category);
@@ -163,8 +162,6 @@ export class ProductService {
       where: { category: In(categories.map((c) => c.id)) },
       relations: ['thumbnail', 'images'],
     });
-
-    console.log(products);
 
     return products.map((product) => {
       return {

@@ -27,7 +27,6 @@ export class AuthController {
   @Post('admin/login')
   @Public()
   loginAdmin(@Body() createAuthDto: CreateAuthDto) {
-    console.log(createAuthDto);
     if (createAuthDto.role === AuthRole.ADMIN) {
       return this.authService.loginAdmin(createAuthDto);
     }
