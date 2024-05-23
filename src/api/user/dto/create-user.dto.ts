@@ -1,7 +1,6 @@
-import { IsEmail, IsNotEmpty, IsStrongPassword, Length } from 'class-validator';
-import { AuthRole } from 'src/types/enums';
+import { IsEmail, IsNotEmpty, IsPhoneNumber, IsStrongPassword, Length } from 'class-validator';
 
-export class CreateAdminDto {
+export class CreateUserDto {
   @IsNotEmpty()
   first_name: string;
   @IsNotEmpty()
@@ -23,5 +22,6 @@ export class CreateAdminDto {
   password: string;
 
   @IsNotEmpty()
-  role: AuthRole;
+  @IsPhoneNumber('US')
+  phone_number: string;
 }

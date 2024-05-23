@@ -1,23 +1,20 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { CustomerService } from '../customer/customer.service';
 import * as bcrypt from 'bcrypt';
-import { CreateCustomerDto } from '../customer/dto/create-customer.dto';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { JwtService } from '@nestjs/jwt';
-import { Customer } from '../customer/entities/customer.entity';
-import { AdminService } from '../admin/admin.service';
-import { Admin } from '../admin/entities/admin.entity';
-import { CreateAdminDto } from '../admin/dto/create-admin.dto';
+import { UserService } from '../user/user.service';
+import { CreateUserDto } from '../user/dto/create-user.dto';
+import { User } from '../user/entities/user.entity';
+import { AuthSession } from './dto/auth-session.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private customerService: CustomerService,
+    private userService: UserService,
     private jwtService: JwtService,
-    private adminService: AdminService,
   ) {}
   async validateCustomer(email: string, password: string) {
-    const customer = await this.customerService.findOneByEmail(email);
+    const customer = await this.userService.findCustomerByEmail(email);
     if (!customer) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -37,7 +34,7 @@ export class AuthService {
   }
 
   async validateAdmin(email: string, password: string) {
-    const admin = await this.adminService.findAdminByEmail(email);
+    const admin = await this.userService.findAdminByEmail(email);
     if (!admin) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -51,65 +48,73 @@ export class AuthService {
     }
   }
 
-  async registerCustomer(customerDto: CreateCustomerDto) {
+  async registerCustomer(customerDto: CreateUserDto): Promise<AuthSession> {
     const hashedPassword = await bcrypt.hash(customerDto.password, 10);
-    const existingCustomer = await this.customerService.findOneByEmail(customerDto.email);
+    const existingCustomer = await this.userService.findCustomerByEmail(customerDto.email);
 
     if (existingCustomer) {
       throw new ConflictException('User already exists with the provided email');
     }
 
-    const newUser = await this.customerService.create({
+    const newUser = await this.userService.create({
       ...customerDto,
       password: hashedPassword,
     });
 
+    const { password, ...result } = newUser;
+
     return {
-      session: { user: newUser, token: this.generateCustomerToken(newUser) },
+      session: { user: result, token: this.generateCustomerToken(newUser) },
     };
   }
 
-  async registerAdmin(adminDto: CreateAdminDto) {
+  async registerAdmin(adminDto: CreateUserDto): Promise<AuthSession> {
     const hashedPassword = await bcrypt.hash(adminDto.password, 10);
-    const existingAdmin = await this.adminService.findAdminByEmail(adminDto.email);
+    const existingAdmin = await this.userService.findAdminByEmail(adminDto.email);
 
     if (existingAdmin) {
       throw new ConflictException('Admin already exists with the provided email');
     }
 
-    const newAdmin = await this.adminService.create({
+    const newAdmin = await this.userService.createAdmin({
       ...adminDto,
       password: hashedPassword,
     });
 
+    const { password, ...result } = newAdmin;
+
     return {
-      session: { user: newAdmin, token: this.generateAdminToken(newAdmin) },
+      session: { user: result, token: this.generateAdminToken(newAdmin) },
     };
   }
 
-  async loginCustomer(credentials: CreateAuthDto) {
-    const customer = await this.validateCustomer(credentials.email, credentials.password);
+  async loginCustomer(credentials: CreateAuthDto): Promise<AuthSession> {
+    const user = await this.validateCustomer(credentials.email, credentials.password);
+    const { password, ...result } = user;
 
-    if (customer)
+    if (user)
       return {
-        token: this.generateCustomerToken(customer),
-        customer,
+        session: {
+          token: this.generateCustomerToken(user),
+          user: result,
+        },
       };
   }
 
-  async loginAdmin(credentials: CreateAuthDto) {
+  async loginAdmin(credentials: CreateAuthDto): Promise<AuthSession> {
     const admin = await this.validateAdmin(credentials.email, credentials.password);
+    const { password, ...result } = admin;
 
     if (admin)
       return {
         session: {
           token: this.generateAdminToken(admin),
-          admin,
+          user: result,
         },
       };
   }
 
-  private generateCustomerToken(customer: Customer) {
+  private generateCustomerToken(customer: User) {
     return this.jwtService.sign({
       id: customer.id,
       email: customer.email,
@@ -119,7 +124,7 @@ export class AuthService {
     });
   }
 
-  private generateAdminToken(admin: Admin) {
+  private generateAdminToken(admin: User) {
     return this.jwtService.sign({
       id: admin.id,
       email: admin.email,

@@ -2,7 +2,7 @@ import { AuthRole } from 'src/types/enums';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
-export class Customer {
+export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -18,7 +18,7 @@ export class Customer {
   @Column()
   password: string;
 
-  @Column()
+  @Column({ nullable: true })
   address: string;
 
   @Column()

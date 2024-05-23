@@ -2,9 +2,8 @@ import { Controller, Post, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { AuthRole } from '../../types/enums';
-import { CreateCustomerDto } from '../customer/dto/create-customer.dto';
 import { Public } from 'src/decorators/Public';
-import { CreateAdminDto } from '../admin/dto/create-admin.dto';
+import { CreateUserDto } from '../user/dto/create-user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -14,7 +13,6 @@ export class AuthController {
   @Public()
   loginCustomer(@Body() createAuthDto: CreateAuthDto) {
     const role = createAuthDto.role;
-    console.log(role);
     if (role === AuthRole.CUSTOMER) {
       return this.authService.loginCustomer(createAuthDto);
     }
@@ -22,19 +20,22 @@ export class AuthController {
 
   @Post('register')
   @Public()
-  registerCustomer(@Body() createCustomerDto: CreateCustomerDto) {
+  registerCustomer(@Body() createCustomerDto: CreateUserDto) {
     return this.authService.registerCustomer(createCustomerDto);
   }
 
   @Post('admin/login')
   @Public()
   loginAdmin(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.loginAdmin(createAuthDto);
+    console.log(createAuthDto);
+    if (createAuthDto.role === AuthRole.ADMIN) {
+      return this.authService.loginAdmin(createAuthDto);
+    }
   }
 
   @Post('admin/register')
   @Public()
-  registerAdmin(@Body() createAdminDto: CreateAdminDto) {
+  registerAdmin(@Body() createAdminDto: CreateUserDto) {
     return this.authService.registerAdmin(createAdminDto);
   }
 }

@@ -253,7 +253,7 @@ export class SeedService {
       password: this.configService.get('ADMIN_PASSWORD'),
       first_name: this.configService.get('ADMIN_FIRST_NAME'),
       last_name: this.configService.get('ADMIN_LAST_NAME'),
-      role: AuthRole.ADMIN,
+      phone_number: this.configService.get('ADMIN_PHONE'),
     });
   }
 
