@@ -9,6 +9,8 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  Query,
+  ValidationPipe,
 } from '@nestjs/common';
 // Remove the unused import statement for ProductService
 import { CreateProductDto } from './dto/create-product.dto';
@@ -19,6 +21,7 @@ import { Roles } from 'src/decorators/Role';
 import { RolesGuard } from 'src/guards/admin-guard';
 import { Public } from 'src/decorators/Public';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { CheckFilters } from './dto/product-filters.dto';
 
 @Controller('product')
 export class ProductController {
@@ -35,8 +38,22 @@ export class ProductController {
 
   @Get()
   @Public()
-  findAll() {
-    return this.productService.findAll();
+  findAll(@Query(new ValidationPipe({ transform: true })) filters: CheckFilters) {
+    console.log(filters);
+    return this.productService.findAll(filters);
+  }
+
+  @Get('category-ids')
+  @Public()
+  findAllCategoryIds(@Query(new ValidationPipe({ transform: true })) filters: CheckFilters) {
+    const products = this.productService.findCategoryImages(filters.ids);
+    return { filters, products };
+  }
+
+  @Get('category/:id')
+  @Public()
+  findAllByCategory(@Param('id') id: string) {
+    return this.productService.findAllByCategory(+id);
   }
 
   @Get(':id')

@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ProductService } from 'src/api/product/product.service';
 import { SeedProduct } from './dto/product.dto';
+import { SeedCategory, SeedCategoryImg } from './dto/category.dto';
 import { randomUUID } from 'crypto';
-import axios from 'axios';
 import { CreateProductDto } from 'src/api/product/dto/create-product.dto';
 import { createHash } from 'crypto';
 import { DatabaseService } from '../database/database.service';
@@ -12,6 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuthRole } from 'src/types/enums';
 import { Category } from 'src/api/category/entities/category.entity';
 import { CategoryService } from 'src/api/category/category.service';
+import { CategoryGraph, CategoryNode } from './category-graph.service';
 import { create } from 'domain';
 
 @Injectable()
@@ -98,10 +99,14 @@ export class SeedService {
 
           const createProduct: CreateProductDto = {
             title: product.title,
-            description: '',
+            description: product.description,
             price: product.price ?? Math.floor(Math.random() * 1000) + 0.99,
             SKU: this.generateSKU(product),
             stock: Math.floor(Math.random() * 100),
+            regularPrice: product.regularPrice,
+            specs: product.specs,
+            highlights: product.highlights,
+            purchaseLimit: product.purchaseLimit,
           };
           try {
             return await this.productService.create(createProduct, category, productImages);
@@ -116,7 +121,28 @@ export class SeedService {
 
   private async seedProducts() {
     const seedProductsResponse = await fetch(this.configService.get('PRODUCT_SEED_PRODUCT_URL'));
-    const seedProducts = (await seedProductsResponse.json()) as SeedProduct[];
+    const seedProductsData = (await seedProductsResponse.json()) as SeedProduct[];
+    const uniqueTcins = new Set<string>();
+    const filteredByCategories = seedProductsData.filter((p) => {
+      const productCategories = p.categories as SeedCategory[];
+      if (productCategories.length === 0) {
+        this.logger.warn(`Product ${p.title} has no categories`);
+        return false;
+      } else if (productCategories[productCategories.length - 1].id == '') {
+        this.logger.warn(`Product ${p.title} has Uncategorized category`);
+        return false;
+      }
+
+      return true;
+    }) as SeedProduct[];
+
+    const seedProducts = [] as SeedProduct[];
+    for (const product of filteredByCategories) {
+      if (!uniqueTcins.has(product.tcin)) {
+        seedProducts.push(product);
+        uniqueTcins.add(product.tcin);
+      }
+    }
 
     const batchSize = 10; // Adjust the batch size as needed
 
@@ -127,46 +153,98 @@ export class SeedService {
     console.log('Unique SKUs', skus.size, 'of', newProducts.length);
   }
 
-  async seedCategories(): Promise<void> {
-    const url = this.configService.get('PRODUCT_SEED_PRODUCT_URL') + '?clean=true&fields=categories';
-    const response = await fetch(url);
-    const data: { categories: SeedCategory[] }[] = await response.json();
-
-    const categoryMap = new Map<string, Category>();
-
-    for (const item of data) {
-      for (const category of item.categories) {
-        await this.processCategory(category, categoryMap);
-      }
+  private async getCategoryImageFile(categoryImgUrl: string, web_id: string): Promise<Express.Multer.File> {
+    if (!categoryImgUrl) {
+      this.logger.warn(`Category image URL is empty ${web_id}`);
+      return null;
     }
+    const response = await fetch(categoryImgUrl);
+    const blob = await response.blob();
+    const arrBuffer = await blob.arrayBuffer();
+    const imgName = `${randomUUID()}.jpg`;
+    const imgFile: Express.Multer.File = {
+      fieldname: `file_${imgName}`,
+      filename: imgName,
+      encoding: '7bit',
+      originalname: imgName,
+      mimetype: response.headers.get('content-type'),
+      buffer: Buffer.from(arrBuffer),
+      size: blob.size,
+      stream: null,
+      destination: '',
+      path: '',
+    };
+    return imgFile;
   }
 
-  private async processCategory(
-    category: SeedCategory,
-    categoryMap: Map<string, Category>,
-    parent: Category = null,
+  async seedCategories(): Promise<void> {
+    const url = this.configService.get('PRODUCT_SEED_PRODUCT_URL') + '?clean=true&fields=categories';
+    const categoryImgUrl = this.configService.get('CATEGORY_IMAGES_SEED_URL');
+
+    // Fetch categories data
+    const response = await fetch(url);
+    const data: { categories: SeedCategory[] }[] = await response.json();
+    this.logger.debug(`Fetched ${data.length} items containing categories`);
+
+    // Fetch category images data
+    const categoryImagesRes = await fetch(categoryImgUrl);
+    const categoryImages = (await categoryImagesRes.json()) as SeedCategoryImg[];
+    this.logger.debug(`Fetched ${categoryImages.length} category images`);
+
+    // Process unique categories and images
+    const categoryImageHash: Record<string, string> = {};
+    for (const categoryImage of categoryImages) {
+      categoryImageHash[categoryImage.id] = categoryImage.img;
+    }
+
+    let totalCategoriesProcessed = 0;
+
+    // Extract and process unique categories from data
+    const categoryGraph = new CategoryGraph(data.flatMap((item) => item.categories));
+    const rootCategories = categoryGraph.getRootCategories();
+    const createdCategoriesMap = new Map<string, Category>();
+
+    await Promise.all(
+      rootCategories.map(async (category) => {
+        await this.createCategoryFromNode(category, createdCategoriesMap, categoryImageHash, null);
+        totalCategoriesProcessed++;
+      }),
+    );
+  }
+
+  async createOrGetCategory(
+    categoryNode: CategoryNode,
+    createdCategoriesMap: Map<string, Category>,
+    categoryImageHash: Record<string, string>,
+    parent: Category | null,
   ): Promise<Category> {
-    if (categoryMap.has(category.id)) {
-      return categoryMap.get(category.id);
+    if (createdCategoriesMap.has(categoryNode.id)) {
+      return createdCategoriesMap.get(categoryNode.id)!;
     }
 
-    let parentCategory: Category = null;
-    if (category.parent) {
-      parentCategory = await this.processCategory(category.parent, categoryMap);
+    // Replace this with actual database creation logic
+
+    // Save the created category in the map
+    const categoryDto = { web_id: categoryNode.id, name: categoryNode.name, parent };
+    const categoryImgFile = await this.getCategoryImageFile(categoryImageHash[categoryNode.id], categoryNode.id);
+    const category = await this.categoryService.createCategory(categoryDto, categoryImgFile);
+    createdCategoriesMap.set(categoryNode.id, category);
+    return category;
+  }
+
+  async createCategoryFromNode(
+    node: CategoryNode,
+    createdCategoriesMap: Map<string, Category>,
+    categoryImageHash: Record<string, string>,
+    parent: Category | null,
+  ) {
+    const category = await this.createOrGetCategory(node, createdCategoriesMap, categoryImageHash, parent);
+
+    for (const child of node.children) {
+      await this.createCategoryFromNode(child, createdCategoriesMap, categoryImageHash, category);
     }
 
-    let existingCategory = await this.categoryService.findCategoryByName(category.name);
-    if (!existingCategory) {
-      existingCategory = await this.categoryService.createCategory({
-        name: category.name,
-        parent: parentCategory,
-        web_id: category.id,
-      });
-    }
-
-    categoryMap.set(category.id, existingCategory);
-
-    return existingCategory;
+    return category;
   }
 
   private async seedAdmins() {

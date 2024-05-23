@@ -1,7 +1,8 @@
 import { Product } from 'src/api/product/entities/product.entity';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn, TreeChildren, TreeParent } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn, Tree, TreeChildren, TreeParent } from 'typeorm';
 
 @Entity()
+@Tree('closure-table')
 export class Category {
   @PrimaryGeneratedColumn()
   id: number;
@@ -11,6 +12,12 @@ export class Category {
 
   @Column()
   name: string;
+
+  @Column({ nullable: true, default: null })
+  imgURL: string | null;
+
+  @Column({ nullable: true, default: null })
+  s3_key: string | null;
 
   @TreeChildren()
   children: Category[];

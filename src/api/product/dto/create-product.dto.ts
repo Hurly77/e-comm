@@ -16,5 +16,11 @@ export class CreateProductDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   price: number;
 
+  regularPrice: number;
+
+  specs?: Record<string, string>;
+  highlights?: string[];
+  purchaseLimit: number;
+
   stock: number;
 }

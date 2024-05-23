@@ -26,9 +26,22 @@ export class Product {
   @Column()
   description: string;
 
+  @Column({ nullable: true })
+  purchaseLimit: number;
+
   @Column('decimal', { precision: 10, scale: 2 })
   @Transform(({ value }) => parseFloat(value), { toClassOnly: true })
   price: number;
+
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  @Transform(({ value }) => parseFloat(value), { toClassOnly: true })
+  regularPrice: number;
+
+  @Column('json', { nullable: true })
+  specs: Record<string, string>;
+
+  @Column('json', { nullable: true })
+  highlights: string[];
 
   @Column()
   stock: number;

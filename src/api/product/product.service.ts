@@ -2,11 +2,13 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
-import { Repository } from 'typeorm';
+import { In, MoreThan, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { S3Service } from 'src/core/s3/s3.service';
 import { ProductImage } from './entities/product-image.entity';
 import { Category } from '../category/entities/category.entity';
+import { CategoryService } from '../category/category.service';
+import { CheckFilters } from './dto/product-filters.dto';
 
 @Injectable()
 export class ProductService {
@@ -16,6 +18,7 @@ export class ProductService {
     @InjectRepository(ProductImage, 'ecommerce-db')
     private productImageRepo: Repository<ProductImage>,
     private s3Service: S3Service,
+    private categoryService: CategoryService,
   ) {}
   async create(createProductDto: CreateProductDto, category: Category | null, files?: Array<Express.Multer.File>) {
     const existingProduct = await this.productRepo.findOne({
@@ -60,10 +63,14 @@ export class ProductService {
     return product;
   }
 
-  async findAll() {
+  async findAll(filters?: CheckFilters) {
     const products = await this.productRepo.find({
       relations: ['thumbnail', 'category'],
+      take: filters?.take,
+      skip: filters?.skip,
+      where: filters?.deals ? { regularPrice: MoreThan(0) } : undefined,
     });
+    console.log(filters);
 
     return await Promise.all(
       products.map(async (product) => {
@@ -84,8 +91,10 @@ export class ProductService {
   async findOne(id: number) {
     const product = await this.productRepo.findOne({
       where: { id },
-      relations: ['thumbnail', 'images'],
+      relations: ['thumbnail', 'images', 'category'],
     });
+
+    const category = await this.categoryService.findCategory(product.category);
 
     const productImages = await Promise.all(
       product.images.map(async (image) => {
@@ -94,13 +103,32 @@ export class ProductService {
           bucket: process.env.AWS_S3_BUCKET_NAME,
         });
 
-        return { ...image, signedUrl };
+        return { ...image, url: signedUrl };
       }),
     );
 
-    return { ...product, images: productImages };
+    return { ...product, images: productImages, category };
 
     // return { product, s3_keys: product.images.map((image) => image.s3_key) };
+  }
+
+  async findAllByCategory(categoryId: number) {
+    const category = await this.categoryService.findCategoryById(categoryId);
+
+    const products = await this.productRepo.find({
+      where: { category },
+      relations: ['thumbnail', 'images'],
+    });
+
+    return await Promise.all(
+      products.map(async (p) => ({
+        ...p,
+        thumbnailUrl: await this.s3Service.getSignedUrl({
+          key: p.thumbnail.s3_key,
+          bucket: process.env.AWS_S3_BUCKET_NAME,
+        }),
+      })),
+    );
   }
 
   async update(id: number, updateProductDto: UpdateProductDto, files?: Express.Multer.File[]) {
@@ -127,5 +155,30 @@ export class ProductService {
 
     await this.productImageRepo.remove(product.images);
     return this.productRepo.remove(product);
+  }
+
+  async findCategoryImages(categoryIds: number[]) {
+    const categories = await this.categoryService.findAllByIds(categoryIds);
+    const products = await this.productRepo.find({
+      where: { category: In(categories.map((c) => c.id)) },
+      relations: ['thumbnail', 'images'],
+    });
+
+    console.log(products);
+
+    return products.map((product) => {
+      return {
+        ...product,
+        images: product.images.map((image) => {
+          return {
+            ...image,
+            signedUrl: this.s3Service.getSignedUrl({
+              key: image.s3_key,
+              bucket: process.env.AWS_S3_BUCKET_NAME,
+            }),
+          };
+        }),
+      };
+    });
   }
 }

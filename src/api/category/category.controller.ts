@@ -16,7 +16,7 @@ export class CategoryController {
   @Get()
   @Public()
   findAll() {
-    return this.categoryService.findAll();
+    return this.categoryService.findFeaturedCategories();
   }
 
   @Get('/children/:id')

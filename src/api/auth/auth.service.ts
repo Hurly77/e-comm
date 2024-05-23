@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { CustomerService } from '../customer/customer.service';
 import * as bcrypt from 'bcrypt';
 import { CreateCustomerDto } from '../customer/dto/create-customer.dto';
@@ -22,7 +18,6 @@ export class AuthService {
   ) {}
   async validateCustomer(email: string, password: string) {
     const customer = await this.customerService.findOneByEmail(email);
-    console.log(customer, password, customer?.password);
     if (!customer) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -58,14 +53,10 @@ export class AuthService {
 
   async registerCustomer(customerDto: CreateCustomerDto) {
     const hashedPassword = await bcrypt.hash(customerDto.password, 10);
-    const existingCustomer = await this.customerService.findOneByEmail(
-      customerDto.email,
-    );
+    const existingCustomer = await this.customerService.findOneByEmail(customerDto.email);
 
     if (existingCustomer) {
-      throw new ConflictException(
-        'User already exists with the provided email',
-      );
+      throw new ConflictException('User already exists with the provided email');
     }
 
     const newUser = await this.customerService.create({
@@ -80,14 +71,10 @@ export class AuthService {
 
   async registerAdmin(adminDto: CreateAdminDto) {
     const hashedPassword = await bcrypt.hash(adminDto.password, 10);
-    const existingAdmin = await this.adminService.findAdminByEmail(
-      adminDto.email,
-    );
+    const existingAdmin = await this.adminService.findAdminByEmail(adminDto.email);
 
     if (existingAdmin) {
-      throw new ConflictException(
-        'Admin already exists with the provided email',
-      );
+      throw new ConflictException('Admin already exists with the provided email');
     }
 
     const newAdmin = await this.adminService.create({
@@ -101,10 +88,7 @@ export class AuthService {
   }
 
   async loginCustomer(credentials: CreateAuthDto) {
-    const customer = await this.validateCustomer(
-      credentials.email,
-      credentials.password,
-    );
+    const customer = await this.validateCustomer(credentials.email, credentials.password);
 
     if (customer)
       return {
@@ -114,10 +98,7 @@ export class AuthService {
   }
 
   async loginAdmin(credentials: CreateAuthDto) {
-    const admin = await this.validateAdmin(
-      credentials.email,
-      credentials.password,
-    );
+    const admin = await this.validateAdmin(credentials.email, credentials.password);
 
     if (admin)
       return {
