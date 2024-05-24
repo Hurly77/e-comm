@@ -1,5 +1,6 @@
+import { Cart } from 'src/api/cart/entities/cart.entity';
 import { AuthRole } from 'src/types/enums';
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class User {
@@ -26,4 +27,8 @@ export class User {
 
   @Column()
   role: AuthRole;
+
+  @OneToOne(() => Cart, (cart) => cart.user, { cascade: true })
+  @JoinColumn()
+  cart: Cart;
 }

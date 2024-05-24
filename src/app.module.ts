@@ -15,6 +15,10 @@ import { CategoryModule } from './api/category/category.module';
 import { Category } from './api/category/entities/category.entity';
 import { UserModule } from './api/user/user.module';
 import { User } from './api/user/entities/user.entity';
+import { CartModule } from './api/cart/cart.module';
+import { OrderModule } from './api/order/order.module';
+import { Cart } from './api/cart/entities/cart.entity';
+import { CartItem } from './api/cart/entities/cart-item.entity';
 
 @Module({
   imports: [
@@ -32,7 +36,7 @@ import { User } from './api/user/entities/user.entity';
         username: configService.get('POSTGRES_USER'),
         password: configService.get('POSTGRES_PASSWORD'),
         database: configService.get('POSTGRES_DB'),
-        entities: [Product, ProductImage, User, Category],
+        entities: [Product, ProductImage, User, Category, Cart, CartItem],
         synchronize: true,
       }),
     }),
@@ -42,6 +46,8 @@ import { User } from './api/user/entities/user.entity';
     DatabaseModule,
     CategoryModule,
     UserModule,
+    CartModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [

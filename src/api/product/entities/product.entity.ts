@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { ProductImage } from './product-image.entity';
 import { Category } from 'src/api/category/entities/category.entity';
+import { ColumnNumericTransformer } from 'src/pipes/numeric-transformer';
 
 @Entity()
 export class Product {
@@ -29,11 +30,11 @@ export class Product {
   @Column({ nullable: true })
   purchaseLimit: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2, transformer: new ColumnNumericTransformer() })
   @Transform(({ value }) => parseFloat(value), { toClassOnly: true })
   price: number;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  @Column('decimal', { precision: 10, scale: 2, nullable: true, transformer: new ColumnNumericTransformer() })
   @Transform(({ value }) => parseFloat(value), { toClassOnly: true })
   regularPrice: number;
 

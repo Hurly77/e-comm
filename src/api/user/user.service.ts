@@ -37,6 +37,24 @@ export class UserService {
     });
   }
 
+  async findUserAndCart(id: number) {
+    const user = await this.userRepo.findOne({
+      where: { id },
+      relations: ['cart', 'cart.items', 'cart.items.product', 'cart.items.product.thumbnail'],
+      order: {
+        cart: {
+          items: {
+            created_at: 'DESC',
+          },
+        },
+      },
+    });
+
+    // console.log(user.cart.items?.[0]?.product?.title);
+
+    return user;
+  }
+
   findCustomerByEmail(email: string) {
     return this.userRepo.findOne({
       where: { email, role: AuthRole.CUSTOMER },
