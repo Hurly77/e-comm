@@ -79,7 +79,6 @@ export class CartService {
   }
 
   async signCartItemProductThumbnails(cart: Cart): Promise<Cart> {
-    console.log('before', cart?.items[0]?.product?.title);
     try {
       const signedCartItems = await Promise.all(
         cart.items.map(async (item) => {

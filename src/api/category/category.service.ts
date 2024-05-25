@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Repository, Not, TreeRepository } from 'typeorm';
+import { In, IsNull, Repository, Not, TreeRepository, ILike, MoreThan } from 'typeorm';
 import { Category } from './entities/category.entity';
 import { S3Service } from 'src/core/s3/s3.service';
 import { CompleteMultipartUploadCommandOutput } from '@aws-sdk/client-s3';
@@ -123,6 +123,41 @@ export class CategoryService {
     return { ...categoryParents, products: signedProducts };
   }
 
+  async findDealCategories() {
+    const categories = await this.categoryRepo.find({
+      where: {
+        products: {
+          regularPrice: MoreThan(0),
+        },
+      },
+      relations: ['products', 'products.thumbnail', 'parent'],
+    });
+
+    const filtered = [];
+
+    for (const c of categories) {
+      const descendants = await this.categoryRepo.countDescendants(c);
+      if (descendants > 1) filtered.push(c);
+    }
+
+    const categoryTrees = await Promise.all(
+      filtered.map((category) => {
+        return this.categoryRepo.findDescendantsTree(category, {
+          relations: [
+            'children',
+            'parent',
+            'products',
+            'products.thumbnail',
+            'children.products',
+            'children.products.thumbnail',
+          ],
+        });
+      }),
+    );
+
+    return this.processCategories(categoryTrees);
+  }
+
   findAllByIds(ids: number[]) {
     return this.categoryRepo.find({
       where: { id: In(ids) },
@@ -145,8 +180,9 @@ export class CategoryService {
   }
 
   private async processCategories(categories: Category[]): Promise<Category[]> {
+    if (!categories) return [];
     const signedCategories = await Promise.all(
-      categories.map(async (category) => {
+      categories?.map(async (category) => {
         const s3Key = category?.s3_key;
         const imgURL = category.imgURL;
         const signedUrl =
@@ -159,7 +195,7 @@ export class CategoryService {
 
         const children = await this.processCategories(category.children);
         const products = await Promise.all(
-          category.products.map(async (product) => ({
+          category?.products?.map(async (product) => ({
             ...product,
             thumbnailUrl: product.thumbnail
               ? await this.s3Service.getSignedUrl({
@@ -169,6 +205,7 @@ export class CategoryService {
               : null,
           })),
         );
+
         return {
           ...category,
           imgURL: signedUrl,

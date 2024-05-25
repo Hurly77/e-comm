@@ -50,8 +50,6 @@ export class UserService {
       },
     });
 
-    // console.log(user.cart.items?.[0]?.product?.title);
-
     return user;
   }
 
