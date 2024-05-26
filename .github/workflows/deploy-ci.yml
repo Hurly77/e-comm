@@ -36,10 +36,10 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/ecommerce_prod_app:latest
-            docker stop ecommerce_prod_app || true
-            docker rm ecommerce_prod_app || true
-            docker run -d --name ecommerce_prod_app -p 4000:4000 \
+            sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/ecommerce_prod_app:latest
+            sudo docker stop ecommerce_prod_app || true
+            sudo docker rm ecommerce_prod_app || true
+            sudo docker run -d --name ecommerce_prod_app -p 4000:4000 \
               -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
               -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
               -e SEED=${{ secrets.SEED }} \
