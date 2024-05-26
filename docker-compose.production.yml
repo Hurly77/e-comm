@@ -1,3 +1,4 @@
+name: ecommerce_production_app
 version: '3.8'
 
 services:
@@ -11,11 +12,9 @@ services:
     volumes:
       - ./:/app/src
     env_file:
-      - .env
+      - .env.production
     environment:
-      SEED: $SEED
-      POSTGRES_HOST: $POSTGRES_HOST
-      POSTGRES_PORT: $POSTGRES_PORT
+      NODE_ENV: production
     dns:
       - 8.8.8.8
       - 8.8.4.4

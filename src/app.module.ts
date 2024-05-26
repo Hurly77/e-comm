@@ -24,6 +24,7 @@ import { CartItem } from './api/cart/entities/cart-item.entity';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true, // Makes the config globally available
+      envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env',
     }),
     TypeOrmModule.forRootAsync({
       name: 'ecommerce-db',

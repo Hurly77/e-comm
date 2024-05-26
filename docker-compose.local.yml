@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   db:
-    container_name: postgres_db
+    container_name: postgres_local_db
     image: postgres:12
     ports:
       - '5433:5432' # Map host port 5433 to container port 5432
@@ -14,7 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   app:
-    container_name: 'ecommerce_prod_app'
+    container_name: 'ecommerce_local_app'
     image: node:18-alpine
     command: sh -c "node -v && yarn build && yarn start:prod"
     ports:
@@ -33,4 +33,4 @@ services:
       - 8.8.4.4
 
 volumes:
-  postgres_data:
+  postgres_local_data:
