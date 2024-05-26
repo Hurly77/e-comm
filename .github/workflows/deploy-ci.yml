@@ -40,12 +40,21 @@ jobs:
           ssh -i key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} "echo SSH connection successful" || { echo 'SSH failed'; exit 1; }
         shell: bash
 
-      - name: SSH into Deploy and EC2
-        uses: appleboy/ssh-action@v0.1.4
+      - name: Deploy to EC2
+        uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: key.pem
+          target: /home/ubuntu/key.pem
+
+      - name: Run deployment commands on EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key_path: /home/ubuntu/key.pem
           script: |
             docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/ecommerce_prod_app:latest
             docker stop ecommerce_prod_app || true
@@ -55,5 +64,3 @@ jobs:
               -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
               -e SEED=${{ secrets.SEED }} \
               ${{ secrets.DOCKER_HUB_USERNAME }}/ecommerce_prod_app:latest
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
