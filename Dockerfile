@@ -1,15 +1,14 @@
-FROM node:14
+FROM node:lts-alpine
 
-WORKDIR /src
-
-COPY package*.json ./
-
-RUN npm install
+WORKDIR /app
 
 COPY . .
 
-RUN npm run build
+RUN yarn install --production
 
+CMD ["yarn", "start:prod"]
+
+EXPOSE 4000
 EXPOSE 3000
-
-CMD ["npm", "run", "start:prod"]
+EXPOSE 5432
+EXPOSE 5433

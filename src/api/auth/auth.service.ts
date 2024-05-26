@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
@@ -69,13 +69,17 @@ export class AuthService {
   }
 
   async registerAdmin(adminDto: CreateUserDto): Promise<AuthSession> {
+    console.log('Attempting to create Admin (starting hash): ', adminDto);
     const hashedPassword = await bcrypt.hash(adminDto.password, 10);
+    console.log('checking if admin exists ');
     const existingAdmin = await this.userService.findAdminByEmail(adminDto.email);
 
     if (existingAdmin) {
+      console.log('Admin already exists throwing error');
       throw new ConflictException('Admin already exists with the provided email');
     }
 
+    console.log('Creating new admin');
     const newAdmin = await this.userService.createAdmin({
       ...adminDto,
       password: hashedPassword,
@@ -83,6 +87,7 @@ export class AuthService {
 
     const { password, ...result } = newAdmin;
 
+    console.log('Returning new admin');
     return {
       session: { user: result, token: this.generateAdminToken(newAdmin) },
     };

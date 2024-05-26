@@ -248,6 +248,13 @@ export class SeedService {
   }
 
   private async seedAdmins() {
+    this.logger.log(
+      this.configService.get('ADMIN_EMAIL'),
+      this.configService.get('ADMIN_PASSWORD'),
+      this.configService.get('ADMIN_FIRST_NAME'),
+      this.configService.get('ADMIN_LAST_NAME'),
+      this.configService.get('ADMIN_PHONE'),
+    );
     await this.authService.registerAdmin({
       email: this.configService.get('ADMIN_EMAIL'),
       password: this.configService.get('ADMIN_PASSWORD'),
@@ -261,10 +268,15 @@ export class SeedService {
     const doSeed = this.configService.get('SEED') === 'true';
     this.logger.log(`Seeding: ${doSeed}`);
     if (doSeed) {
+      this.logger.log('-- Emptying The S3 Bucket --');
       await this.s3Service.emptyBucket(process.env.AWS_S3_BUCKET_NAME);
+      this.logger.log('-- Resetting The Database --');
       await this.dbService.resetDatabase();
+      this.logger.log('-- SEEDING ADMIN --');
       await this.seedAdmins();
+      this.logger.log('-- SEEDING CATEGORIES --');
       await this.seedCategories();
+      this.logger.log('-- SEEDING PRODUCTS --');
       await this.seedProducts();
       this.logger.log('-- SEEDING COMPLETE --');
     }

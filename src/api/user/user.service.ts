@@ -21,6 +21,7 @@ export class UserService {
   }
 
   createAdmin(createUserDto: CreateUserDto) {
+    console.log('Saving Admin from UserService');
     return this.userRepo.save({
       ...createUserDto,
       role: AuthRole.ADMIN,

@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: 'ecommerce_prod_app'
+    image: node:18-alpine
+    command: sh -c "node -v && yarn build && yarn start:prod"
+    ports:
+      - '127.0.0.1:4000:4000'
+    working_dir: /app/src
+    volumes:
+      - ./:/app/src
+    env_file:
+      - .env
+    environment:
+      SEED: $SEED
+      POSTGRES_HOST: $POSTGRES_HOST
+      POSTGRES_PORT: $POSTGRES_PORT
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4

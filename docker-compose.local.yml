@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  db:
+    container_name: postgres_db
+    image: postgres:12
+    ports:
+      - '5433:5432' # Map host port 5433 to container port 5432
+    environment:
+      - POSTGRES_USER=cameron
+      - POSTGRES_PASSWORD=pass123
+      - POSTGRES_DB=ecommerce-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    container_name: 'ecommerce_prod_app'
+    image: node:18-alpine
+    command: sh -c "node -v && yarn build && yarn start:prod"
+    ports:
+      - '127.0.0.1:4000:4000'
+    working_dir: /app/src
+    volumes:
+      - ./:/app/src
+    env_file:
+      - .env
+    environment:
+      SEED: true
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+volumes:
+  postgres_data:

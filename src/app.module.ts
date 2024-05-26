@@ -29,16 +29,23 @@ import { CartItem } from './api/cart/entities/cart-item.entity';
       name: 'ecommerce-db',
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('POSTGRES_HOST'),
-        port: configService.get('POSTGRES_PORT'),
-        username: configService.get('POSTGRES_USER'),
-        password: configService.get('POSTGRES_PASSWORD'),
-        database: configService.get('POSTGRES_DB'),
-        entities: [Product, ProductImage, User, Category, Cart, CartItem],
-        synchronize: true,
-      }),
+      useFactory: (configService: ConfigService) => {
+        console.log(configService.get('POSTGRES_HOST'));
+        console.log(configService.get('POSTGRES_PORT'));
+        console.log(configService.get('POSTGRES_USER'));
+        console.log(configService.get('POSTGRES_PASSWORD'));
+        console.log(configService.get('POSTGRES_DB'));
+        return {
+          type: 'postgres',
+          host: configService.get('POSTGRES_HOST'),
+          port: configService.get('POSTGRES_PORT'),
+          username: configService.get('POSTGRES_USER'),
+          password: configService.get('POSTGRES_PASSWORD'),
+          database: configService.get('POSTGRES_DB'),
+          entities: [Product, ProductImage, User, Category, Cart, CartItem],
+          synchronize: false,
+        };
+      },
     }),
     ProductModule,
     AuthModule,
