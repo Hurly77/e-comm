@@ -45,6 +45,9 @@ import { CartItem } from './api/cart/entities/cart-item.entity';
           database: configService.get('POSTGRES_DB'),
           entities: [Product, ProductImage, User, Category, Cart, CartItem],
           synchronize: false,
+          ssl: {
+            rejectUnauthorized: false,
+          },
         };
       },
     }),
