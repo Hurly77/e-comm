@@ -29,21 +29,23 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/ecommerce_prod_app:latest
 
-      - name: Write SSH key to file
+      - name: Write SSH key to file securely
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > key.pem
           chmod 400 key.pem
+        shell: bash
 
       - name: Check SSH access
         run: |
           ssh -i key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} "echo SSH connection successful" || { echo 'SSH failed'; exit 1; }
+        shell: bash
 
-      - name: SSH into EC2 and deploy
+      - name: SSH into Deploy and EC2
         uses: appleboy/ssh-action@v0.1.4
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
-          key: key.pem
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/ecommerce_prod_app:latest
             docker stop ecommerce_prod_app || true
@@ -53,3 +55,5 @@ jobs:
               -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
               -e SEED=${{ secrets.SEED }} \
               ${{ secrets.DOCKER_HUB_USERNAME }}/ecommerce_prod_app:latest
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
