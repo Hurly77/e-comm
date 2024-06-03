@@ -15,5 +15,9 @@ export class CheckFilters {
   skip: number;
 
   @IsOptional()
+  @Transform(({ value }) => (value === 'true' ? true : false))
   deals: boolean;
+
+  @IsOptional()
+  search?: string;
 }

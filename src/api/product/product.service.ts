@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
-import { In, MoreThan, Repository } from 'typeorm';
+import { ILike, In, MoreThan, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { S3Service } from 'src/core/s3/s3.service';
 import { ProductImage } from './entities/product-image.entity';
@@ -64,27 +64,62 @@ export class ProductService {
   }
 
   async findAll(filters?: CheckFilters) {
-    const products = await this.productRepo.find({
-      relations: ['thumbnail', 'category'],
-      take: filters?.take,
-      skip: filters?.skip,
-      where: filters?.deals ? { regularPrice: MoreThan(0) } : undefined,
-    });
+    const { take, skip, deals, search } = filters;
 
-    return await Promise.all(
+    console.log('Filters:', filters, '\n\n');
+
+    const query = this.productRepo.createQueryBuilder('product');
+
+    // Join necessary relations, including children of categories
+    query
+      .innerJoinAndSelect('product.thumbnail', 'thumbnail')
+      .innerJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('category.children', 'categoryChildren'); // Join children categories
+
+    // Apply base filter
+    query.where('length(product.title) > 0');
+
+    // Apply filters
+    if (deals) {
+      query.andWhere('product.regularPrice > 0');
+    }
+    if (search) {
+      query
+        .andWhere('product.title ILIKE :search', { search: `%${search}%` })
+        .orWhere('category.name ILIKE :search', { search: `%${search}%` })
+        .orWhere('categoryChildren.name ILIKE :search', { search: `%${search}%` }); // Include search for children categories
+    }
+
+    // Debugging SQL
+    console.log('\n', query.getSql(), '\n');
+
+    const count = await query.getCount();
+
+    // Fetch products
+    const products = await query.take(take).skip(skip).getMany();
+
+    // Generate signed URLs for thumbnails
+    const result = await Promise.all(
       products.map(async (product) => {
-        const signedUrl = product.thumbnail
+        const thumbnailUrl = product.thumbnail
           ? await this.s3Service.getSignedUrl({
               key: product.thumbnail.s3_key,
               bucket: process.env.AWS_S3_BUCKET_NAME,
             })
           : null;
+
+        // Return product with signed thumbnail URL
         return {
           ...product,
-          thumbnailUrl: signedUrl,
+          thumbnailUrl,
         };
       }),
     );
+
+    return {
+      result,
+      count,
+    };
   }
 
   async findOne(id: number) {

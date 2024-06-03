@@ -1,17 +1,30 @@
 name: ecommerce_production_app
-version: '3.8'
 
 services:
+  prod_db:
+    container_name: postgres_prod_db
+    image: postgres:16
+    ports:
+      - '5433:5432' # Map host port 5433 to container port 5432
+    env_file: .env.production
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
   app:
     container_name: 'ecommerce_prod_app'
     image: node:18-alpine
     command: sh -c "node -v && yarn build && yarn start:prod"
     ports:
-      - '127.0.0.1:4000:4000'
+      - '4000:4000'
     working_dir: /app/src
     volumes:
       - ./:/app/src
     env_file:
       - .env.production
     environment:
+      POSTGRES_HOST: prod_db
+      POSTGRES_PORT: 5432
       NODE_ENV: production
+      PORT: 4000
+
+volumes:
+  postgres_prod_data:

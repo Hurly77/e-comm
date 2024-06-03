@@ -148,7 +148,7 @@ export class SeedService {
 
     await this.processBatch(seedProducts, batchSize);
 
-    const newProducts = await this.productService.findAll(); // Assuming you have a method to get all products
+    const newProducts = await this.productService.findAll()?.then((r) => r.result); // Assuming you have a method to get all products
     const skus = new Set(newProducts.map((product) => product.SKU));
     console.log('Unique SKUs', skus.size, 'of', newProducts.length);
   }
