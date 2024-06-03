@@ -63,7 +63,7 @@ export class ProductService {
     return product;
   }
 
-  async findAll(filters?: CheckFilters) {
+  async findAll(filters: CheckFilters = {} as CheckFilters) {
     const { take, skip, deals, search } = filters;
 
     console.log('Filters:', filters, '\n\n');
