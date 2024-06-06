@@ -4,5 +4,11 @@ export class AuthSession {
   session: {
     user: Partial<User>;
     token: string;
+    exp: number;
   };
 }
+
+export type JWTToken<T = Record<string, string>> = {
+  iat: number;
+  exp: number;
+} & T;

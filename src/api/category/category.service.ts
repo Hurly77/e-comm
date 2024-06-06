@@ -60,12 +60,12 @@ export class CategoryService {
 
   async findCategoryAndChildrenById(id: number): Promise<Category> {
     const category = await this.categoryRepo.findOne({
-      relations: ['children', 'parent', 'products', 'products.thumbnail'],
+      relations: ['children', 'parent', 'products', 'products.category', 'products.thumbnail'],
       where: { id },
     });
 
     const res = await this.categoryRepo.findDescendantsTree(category, {
-      relations: ['children', 'parent', 'products', 'products.thumbnail'],
+      relations: ['children', 'parent', 'products', 'products.category', 'products.thumbnail'],
     });
 
     return await this.processSingleCategory(res);
@@ -105,7 +105,7 @@ export class CategoryService {
 
   async findCategory(category: Category) {
     const categoryParents = await this.categoryRepo.findAncestorsTree(category, {
-      relations: ['parent', 'products'],
+      relations: ['parent', 'products', 'products.category'],
     });
 
     const signedProducts = await Promise.all(

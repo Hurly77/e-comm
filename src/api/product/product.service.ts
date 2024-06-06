@@ -66,8 +66,6 @@ export class ProductService {
   async findAll(filters: CheckFilters = {} as CheckFilters) {
     const { take, skip, deals, search } = filters;
 
-    console.log('Filters:', filters, '\n\n');
-
     const query = this.productRepo.createQueryBuilder('product');
 
     // Join necessary relations, including children of categories
@@ -89,9 +87,6 @@ export class ProductService {
         .orWhere('category.name ILIKE :search', { search: `%${search}%` })
         .orWhere('categoryChildren.name ILIKE :search', { search: `%${search}%` }); // Include search for children categories
     }
-
-    // Debugging SQL
-    console.log('\n', query.getSql(), '\n');
 
     const count = await query.getCount();
 
@@ -125,7 +120,14 @@ export class ProductService {
   async findOne(id: number) {
     const product = await this.productRepo.findOne({
       where: { id },
-      relations: ['thumbnail', 'images', 'category', 'category.products', 'category.products.thumbnail'],
+      relations: [
+        'thumbnail',
+        'images',
+        'category',
+        'category.products',
+        'category.products.category',
+        'category.products.thumbnail',
+      ],
     });
 
     const category = await this.categoryService.findCategory(product.category);
@@ -151,7 +153,7 @@ export class ProductService {
 
     const products = await this.productRepo.find({
       where: { category },
-      relations: ['thumbnail', 'images'],
+      relations: ['thumbnail', 'images', 'category'],
     });
 
     return await Promise.all(

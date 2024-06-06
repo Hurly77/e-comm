@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { User } from '../user/entities/user.entity';
-import { AuthSession } from './dto/auth-session.dto';
+import { AuthSession, JWTToken } from './dto/auth-session.dto';
 
 @Injectable()
 export class AuthService {
@@ -62,10 +62,9 @@ export class AuthService {
     });
 
     const { password, ...result } = newUser;
+    const { token, exp } = this.generateToken(newUser);
 
-    return {
-      session: { user: result, token: this.generateCustomerToken(newUser) },
-    };
+    return { session: { user: result, token, exp } };
   }
 
   async registerAdmin(adminDto: CreateUserDto): Promise<AuthSession> {
@@ -86,56 +85,40 @@ export class AuthService {
     });
 
     const { password, ...result } = newAdmin;
+    const { token, exp } = this.generateToken(newAdmin);
 
     console.log('Returning new admin');
-    return {
-      session: { user: result, token: this.generateAdminToken(newAdmin) },
-    };
+    return { session: { user: result, token, exp } };
   }
 
   async loginCustomer(credentials: CreateAuthDto): Promise<AuthSession> {
     const user = await this.validateCustomer(credentials.email, credentials.password);
     const { password, ...result } = user;
 
-    if (user)
-      return {
-        session: {
-          token: this.generateCustomerToken(user),
-          user: result,
-        },
-      };
+    const { token, exp } = this.generateToken(user);
+
+    if (user) return { session: { token, exp, user: result } };
   }
 
   async loginAdmin(credentials: CreateAuthDto): Promise<AuthSession> {
     const admin = await this.validateAdmin(credentials.email, credentials.password);
     const { password, ...result } = admin;
 
-    if (admin)
-      return {
-        session: {
-          token: this.generateAdminToken(admin),
-          user: result,
-        },
-      };
+    const { token, exp } = this.generateToken(admin);
+
+    if (admin) return { session: { token, user: result, exp } };
   }
 
-  private generateCustomerToken(customer: User) {
-    return this.jwtService.sign({
+  private generateToken(customer: User) {
+    const token = this.jwtService.sign({
       id: customer.id,
       email: customer.email,
       first_name: customer.first_name,
       last_name: customer.last_name,
       role: customer.role,
     });
-  }
 
-  private generateAdminToken(admin: User) {
-    return this.jwtService.sign({
-      id: admin.id,
-      email: admin.email,
-      first_name: admin.first_name,
-      last_name: admin.last_name,
-      role: admin.role,
-    });
+    const { exp } = this.jwtService.decode<JWTToken>(token);
+    return { token, exp: exp * 1000 };
   }
 }
