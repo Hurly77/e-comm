@@ -130,7 +130,7 @@ export class CategoryService {
           regularPrice: MoreThan(0),
         },
       },
-      relations: ['products', 'products.thumbnail', 'parent'],
+      relations: ['products', 'products.category', 'products.thumbnail', 'parent'],
     });
 
     const filtered = [];
@@ -147,6 +147,7 @@ export class CategoryService {
             'children',
             'parent',
             'products',
+            'products.category',
             'products.thumbnail',
             'children.products',
             'children.products.thumbnail',

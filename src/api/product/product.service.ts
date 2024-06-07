@@ -132,6 +132,11 @@ export class ProductService {
 
     const category = await this.categoryService.findCategory(product.category);
 
+    const thumbnailUrl = await this.s3Service.getSignedUrl({
+      key: product.thumbnail.s3_key,
+      bucket: process.env.AWS_S3_BUCKET_NAME,
+    });
+
     const productImages = await Promise.all(
       product.images.map(async (image) => {
         const signedUrl = await this.s3Service.getSignedUrl({
@@ -143,7 +148,7 @@ export class ProductService {
       }),
     );
 
-    return { ...product, images: productImages, category };
+    return { ...product, images: productImages, category, thumbnailUrl };
 
     // return { product, s3_keys: product.images.map((image) => image.s3_key) };
   }
