@@ -19,6 +19,10 @@ import { CartModule } from './api/cart/cart.module';
 import { OrderModule } from './api/order/order.module';
 import { Cart } from './api/cart/entities/cart.entity';
 import { CartItem } from './api/cart/entities/cart-item.entity';
+import { UserShippingAddress } from './api/user/entities/user-shipping-address.entity';
+import { CheckoutModule } from './api/checkout/checkout.module';
+import { StripeModule } from './core/stripe/stripe.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -43,11 +47,12 @@ import { CartItem } from './api/cart/entities/cart-item.entity';
           username: configService.get('POSTGRES_USER'),
           password: configService.get('POSTGRES_PASSWORD'),
           database: configService.get('POSTGRES_DB'),
-          entities: [Product, ProductImage, User, Category, Cart, CartItem],
+          entities: [Product, ProductImage, User, UserShippingAddress, Category, Cart, CartItem],
           synchronize: true,
         };
       },
     }),
+    ScheduleModule.forRoot(),
     ProductModule,
     AuthModule,
     SeedModule,
@@ -56,6 +61,8 @@ import { CartItem } from './api/cart/entities/cart-item.entity';
     UserModule,
     CartModule,
     OrderModule,
+    CheckoutModule,
+    StripeModule,
   ],
   controllers: [AppController],
   providers: [

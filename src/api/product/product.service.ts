@@ -153,6 +153,16 @@ export class ProductService {
     // return { product, s3_keys: product.images.map((image) => image.s3_key) };
   }
 
+  // Used To get Minimal Data about product just for Stripe Purposes;
+  async findOneForStripe(id: number) {
+    const product = await this.productRepo.findOne({
+      select: ['id', 'title', 'regularPrice', 'price', 'stripeProductId'],
+      where: { id },
+    });
+
+    return product;
+  }
+
   async findAllByCategory(categoryId: number) {
     const category = await this.categoryService.findCategoryById(categoryId);
 
