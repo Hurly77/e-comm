@@ -23,6 +23,8 @@ import { UserShippingAddress } from './api/user/entities/user-shipping-address.e
 import { CheckoutModule } from './api/checkout/checkout.module';
 import { StripeModule } from './core/stripe/stripe.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { Order } from './api/order/entities/order.entity';
+import { OrderItem } from './api/order/entities/order-item.entity';
 
 @Module({
   imports: [
@@ -47,7 +49,7 @@ import { ScheduleModule } from '@nestjs/schedule';
           username: configService.get('POSTGRES_USER'),
           password: configService.get('POSTGRES_PASSWORD'),
           database: configService.get('POSTGRES_DB'),
-          entities: [Product, ProductImage, User, UserShippingAddress, Category, Cart, CartItem],
+          entities: [Product, ProductImage, User, UserShippingAddress, Category, Cart, CartItem, Order, OrderItem],
           synchronize: true,
         };
       },

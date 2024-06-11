@@ -24,7 +24,7 @@ export class StripeService extends Stripe {
       const stripeCustomer = await this.findOrCreateStripeCustomer(customer);
 
       const paymentIntent = await this.paymentIntents.create({
-        amount: amount * 100,
+        amount: Math.round(amount * 100),
         currency: 'usd',
         customer: stripeCustomer.id,
         payment_method: pm_id,

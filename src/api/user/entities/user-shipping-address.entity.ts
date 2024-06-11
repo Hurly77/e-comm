@@ -1,6 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
 import { User } from './user.entity';
 import Stripe from 'stripe';
+import { Order } from 'src/api/order/entities/order.entity';
 
 @Entity()
 export class UserShippingAddress implements Required<Stripe.AddressParam> {
@@ -39,4 +40,7 @@ export class UserShippingAddress implements Required<Stripe.AddressParam> {
 
   @ManyToOne(() => User, (user) => user.shipping_addresses)
   user: User;
+
+  @OneToMany(() => Order, (order) => order.shipping_address)
+  orders: Order[];
 }

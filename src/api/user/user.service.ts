@@ -92,6 +92,14 @@ export class UserService {
     });
   }
 
+  public async findUserShippingAddressById(user_id: number, address_id: number) {
+    const shippingAddress = await this.userShippingAddressRepo.findOne({
+      where: { id: address_id, user: { id: user_id } },
+    });
+
+    return shippingAddress;
+  }
+
   public async update(id: number, updateUserDto: UpdateUserDto) {
     return this.userRepo.update(id, updateUserDto);
   }
