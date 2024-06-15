@@ -1,6 +1,17 @@
 import { Cart } from 'src/api/cart/entities/cart.entity';
 import { AuthRole } from 'src/types/enums';
-import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { UserShippingAddress } from './user-shipping-address.entity';
+import { Order } from 'src/api/order/entities/order.entity';
 
 @Entity()
 export class User {
@@ -20,15 +31,31 @@ export class User {
   password: string;
 
   @Column({ nullable: true })
-  address: string;
+  address: string | null;
 
   @Column()
   phone_number: string;
 
+  @Column('varchar', { nullable: true, length: 18 })
+  stripe_customer_id: string | null;
+
   @Column()
   role: AuthRole;
 
-  @OneToOne(() => Cart, (cart) => cart.user, { cascade: true })
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
+
+  @OneToMany(() => UserShippingAddress, (shippingAddress) => shippingAddress.user)
+  @JoinColumn()
+  shipping_addresses: UserShippingAddress[];
+
+  @OneToMany(() => Order, (order) => order.user)
+  orders: Order[];
+
+  @OneToOne(() => Cart, (cart) => cart.user, { cascade: ['remove'] })
   @JoinColumn()
   cart: Cart;
 }

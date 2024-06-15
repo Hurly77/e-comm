@@ -78,6 +78,17 @@ export class CartService {
     return { cart: await this.signCartItemProductThumbnails(cart), user };
   }
 
+  async retrieveCartForProcessing(id: number): Promise<Cart> {
+    const cart = await this.cartRepo.findOne({
+      where: { id },
+      relations: ['items', 'items.product', 'user'],
+    });
+
+    if (!cart) throw new Error('Cart not found');
+
+    return cart;
+  }
+
   async signCartItemProductThumbnails(cart: Cart): Promise<Cart> {
     try {
       const signedCartItems = await Promise.all(
@@ -97,6 +108,15 @@ export class CartService {
       };
     } catch (error) {
       console.log(error);
+    }
+  }
+
+  async emptyCart(cart: Cart) {
+    try {
+      await this.cartItemRepo.remove(cart.items);
+      this.cartRepo.save({ ...cart, items: [] });
+    } catch (error) {
+      console.error(error);
     }
   }
 }

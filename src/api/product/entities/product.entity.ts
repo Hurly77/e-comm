@@ -41,11 +41,20 @@ export class Product {
   @Column('json', { nullable: true })
   specs: Record<string, string>;
 
+  @Column({ nullable: true })
+  tcin: string;
+
+  @Column({ nullable: true })
+  upc: string;
+
   @Column('json', { nullable: true })
   highlights: string[];
 
   @Column()
   stock: number;
+
+  @Column({ nullable: true })
+  stripeProductId: string;
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
@@ -65,4 +74,5 @@ export class Product {
 
   @ManyToOne(() => Category, (category) => category.products)
   category: Category | null;
+  orderItems: any;
 }
