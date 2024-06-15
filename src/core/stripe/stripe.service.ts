@@ -126,12 +126,19 @@ export class StripeService extends Stripe {
     try {
       if (stripeCustomerId) {
         const customerResult = await this.customers.retrieve(stripeCustomerId);
-        if (customerResult.deleted) return this.createStripeCustomer(user);
+        if (customerResult.deleted) {
+          console.log('Customer was deleted, creating new customer');
+          const result = await this.createStripeCustomer(user);
+          return result;
+        }
       }
 
       const stripeCustomerSearchResults = await this.customers.list({ email: customerEmail });
       const existingCustomer = stripeCustomerSearchResults.data?.[0] as Stripe.Customer | undefined;
-      if (existingCustomer) return existingCustomer;
+      if (existingCustomer) {
+        this.userService.update(user.id, { stripe_customer_id: existingCustomer.id });
+        return existingCustomer;
+      }
       return this.createStripeCustomer(user);
     } catch (err) {
       console.error(err);
@@ -152,12 +159,28 @@ export class StripeService extends Stripe {
     return stripeCustomer;
   }
 
+  public async updateCustomerDefaultPM(user: User, pm_id: string) {
+    const stripeCustomer = await this.findOrCreateStripeCustomer(user);
+
+    const updatedCustomer = await this.customers.update(stripeCustomer.id, {
+      invoice_settings: {
+        default_payment_method: pm_id,
+      },
+    });
+
+    return updatedCustomer;
+  }
+
   //================ PMs = Payment Methods ================
   public async getStripeCustomerPMs(user: User) {
     const stripeCustomer = await this.findOrCreateStripeCustomer(user);
     const paymentMethods = await this.paymentMethods.list({ customer: stripeCustomer.id });
+    const defaultPaymentMethod = stripeCustomer.invoice_settings.default_payment_method;
 
-    return paymentMethods;
+    return {
+      paymentMethods,
+      default_pm_id: defaultPaymentMethod,
+    };
   }
 
   public async attachPMToCustomer(user: User, pm_id: string) {

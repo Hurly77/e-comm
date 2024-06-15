@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Patch, Post } from '@nestjs/common';
 
 import { StripeService } from '../../core/stripe/stripe.service';
 import { UserService } from '../user/user.service';
@@ -22,11 +22,20 @@ export class CheckoutController {
     return this.stripeService.findOrCreateStripeCustomer(user);
   }
 
+  @Patch('/pm/customer/default')
+  async setDefaultPaymentMethod(@Body() { user_id, pm_id }: { user_id: string; pm_id: string }) {
+    const user = await this.userService.findOne(+user_id);
+
+    if (!user) throw new NotFoundException('User not found');
+
+    return this.stripeService.updateCustomerDefaultPM(user, pm_id);
+  }
+
   @Get('/pm/methods/customer/:user_id')
   async getCustomerPaymentMethods(@Param('user_id') user_id: string) {
     const { user } = await this.cartService.retrieveCart(+user_id);
 
-    if (!user) return {};
+    if (!user) throw new NotFoundException('User not found');
 
     return this.stripeService.getStripeCustomerPMs(user);
   }
