@@ -39,7 +39,7 @@ export class OrderService {
       cart.items.reduce((acc, item) => acc + item.product.price * item.quantity, 0).toFixed(2),
     );
     const collected_tax = parseFloat((sub_total * 0.07).toFixed(2));
-    const total_price = sub_total + collected_tax;
+    const total_price = parseFloat((sub_total + collected_tax).toFixed(2));
 
     console.log('Creating Order');
     const order = await this.orderRepo.save({
@@ -59,7 +59,7 @@ export class OrderService {
         return new OrderItem({
           product: item?.product,
           quantity: item.quantity,
-          price: item.product.price,
+          price: parseFloat(item.product.price?.toFixed(2)),
           order: order,
         });
       }),
