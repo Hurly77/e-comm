@@ -38,7 +38,10 @@ export class UserShippingAddress implements Required<Stripe.AddressParam> {
   @Column()
   phone_number: string;
 
-  @ManyToOne(() => User, (user) => user.shipping_addresses)
+  @ManyToOne(() => User, (user) => user.shipping_addresses, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   user: User;
 
   @OneToMany(() => Order, (order) => order.shipping_address)

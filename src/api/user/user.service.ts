@@ -75,8 +75,6 @@ export class UserService {
 
     const shippingAddress = await this.userShippingAddressRepo.save({ ...address, user });
 
-    console.log('Shipping Address: ', shippingAddress);
-
     return shippingAddress;
   }
 
