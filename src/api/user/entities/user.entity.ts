@@ -42,6 +42,9 @@ export class User {
   @Column()
   role: AuthRole;
 
+  @Column({ nullable: true })
+  default_shipping_address_id: number | null;
+
   @CreateDateColumn()
   created_at: Date;
 

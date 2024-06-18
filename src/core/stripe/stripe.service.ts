@@ -44,6 +44,7 @@ export class StripeService extends Stripe {
       automatic_payment_methods: {
         enabled: true,
       },
+      metadata: {},
     });
 
     return setupIntent;
@@ -130,6 +131,8 @@ export class StripeService extends Stripe {
           console.log('Customer was deleted, creating new customer');
           const result = await this.createStripeCustomer(user);
           return result;
+        } else if (!customerResult.deleted) {
+          return customerResult as Stripe.Customer;
         }
       }
 
@@ -174,6 +177,7 @@ export class StripeService extends Stripe {
   //================ PMs = Payment Methods ================
   public async getStripeCustomerPMs(user: User) {
     const stripeCustomer = await this.findOrCreateStripeCustomer(user);
+    console.log('Stripe Customer:', stripeCustomer);
     const paymentMethods = await this.paymentMethods.list({ customer: stripeCustomer.id });
     const defaultPaymentMethod = stripeCustomer.invoice_settings.default_payment_method;
 
@@ -181,6 +185,12 @@ export class StripeService extends Stripe {
       paymentMethods,
       default_pm_id: defaultPaymentMethod,
     };
+  }
+
+  public async updatePM(pm_id: string, updates: Partial<Stripe.PaymentMethodUpdateParams>) {
+    const updatedPM = await this.paymentMethods.update(pm_id, updates);
+
+    return updatedPM;
   }
 
   public async attachPMToCustomer(user: User, pm_id: string) {

@@ -76,6 +76,7 @@ export class OrderService {
     const orders = await this.orderRepo.find({
       where: { user: { id: user_id } },
       relations: ['items', 'items.product', 'items.product.thumbnail', 'shipping_address', 'items.product.category'],
+      withDeleted: true,
       order: {
         order_date: 'DESC',
       },
@@ -113,6 +114,7 @@ export class OrderService {
   async findOne(id: number, user_id: number) {
     const order = await this.orderRepo.findOne({
       where: { id, user: { id: user_id } },
+      withDeleted: true,
       relations: ['items', 'items.product', 'items.product.thumbnail', 'shipping_address', 'items.product.category'],
       order: {
         order_date: 'DESC',
